@@ -1,0 +1,70 @@
+﻿<Window x:Class="IMAP_Client.View.ViewEmailWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:IMAP_Client"
+        mc:Ignorable="d"
+        Title="ViewEmailWindow" MinHeight="450" MinWidth="800">
+    <!--<Window.DataContext>
+        
+    </Window.DataContext>-->
+    <Window.Resources>
+        <Style TargetType="Label">
+            <Setter Property="FontSize" Value="15" />
+        </Style>
+    </Window.Resources>
+    <Grid>
+        <!-- 
+            TODO:
+            Rework bindings
+            Add binding for title
+        -->
+        <Grid Margin="20, 10">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="auto"/>
+                <RowDefinition Height="auto"/>
+                <RowDefinition Height="auto"/>
+                <RowDefinition Height="auto"/>
+                <RowDefinition Height="auto"/>
+                <RowDefinition/>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="auto"/>
+                <ColumnDefinition/>
+            </Grid.ColumnDefinitions>
+
+            <Label Grid.Row="0" Grid.Column="0" Content="From:"/>
+            <Label Name="FromLabel" Grid.Row="0" Grid.Column="1" 
+               Content="{Binding Message.From, RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}"/>
+
+            <Label Grid.Row="1" Grid.Column="0" Content="To:"/>
+            <Label Name="ToLabel" Grid.Row="1" Grid.Column="1"
+               Content="{Binding Message.To, RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}"/>
+
+            <Label Grid.Row="2" Grid.Column="0" Content="Subject:"/>
+            <Label Name="SubjectLabel" Grid.Row="2" Grid.Column="1"
+               Content="{Binding Message.Subject, RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}"/>
+
+            <Label Grid.Row="3" Grid.Column="0" Content="Date:"/>
+            <Label Name="DateLabel" Grid.Row="3" Grid.Column="1"
+               Content="{Binding Message.Date, RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}"/>
+
+            <StackPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="-10, 10">
+                <!-- Controls : add some more -->
+                <Button Name="RespondBtn" Content="Respond"/>
+                <!--Command=""-->
+            </StackPanel>
+
+            <TabControl Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2">
+                <TabItem Header="Content">
+                    <WebBrowser Name="HtmlBodyPresenter" VerticalAlignment="Center"/>
+                </TabItem>
+                <TabItem Header="Attachments" Name="AttachmentsTabItem">
+                    <ListBox Name="AttachmentsListBox"/>
+                    <!--Command=""-->
+                </TabItem>
+            </TabControl>
+        </Grid>
+    </Grid>
+</Window>

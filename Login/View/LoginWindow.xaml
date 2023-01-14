@@ -1,0 +1,149 @@
+﻿<Window x:Class="Login.View.LoginWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Login"
+        xmlns:VM="clr-namespace:Login.ViewModel"
+        mc:Ignorable="d" MinHeight="600" MinWidth="500"
+        Title="Login" Height="600" Width="543">
+    <Window.DataContext>
+        <VM:LoginWindowViewModel/>
+    </Window.DataContext>
+    <Grid Name="GeneralGrid">
+        <Grid Name="StartGrid" Style="{StaticResource LoginGrid}" Visibility="{Binding StartGridVisibility}">
+            <Grid.RowDefinitions>
+                <RowDefinition/>
+                <RowDefinition/>
+                <RowDefinition/>
+            </Grid.RowDefinitions>
+
+            <Label Content="Hi! Welcome to mail" Grid.Row="0" Style="{StaticResource CapitalLabel}"/>
+            <Button Content="New account" Grid.Row="1" Style="{StaticResource BigBtn}" Command="{Binding CreationCommand}"/>
+            <Button Content="Existing account" Grid.Row="2" Style="{StaticResource BigBtn}" Command="{Binding SelectExistingCmd}"/>
+        </Grid>
+
+        <Grid Name="ServerSelectionGrid" Style="{StaticResource LoginGrid}" Visibility="{Binding ServerSelectionGridVisibility}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="auto"/>
+                <RowDefinition Height="auto"/>
+                <RowDefinition Height="auto"/>
+            </Grid.RowDefinitions>
+
+            <Label Content="Select server" Style="{StaticResource SubcapitalLabel}" Grid.Row="0" Margin="20"/>
+            <ItemsControl Name="ServerCredsView" Grid.Row="1" ItemsSource="{Binding Servers}" ItemTemplate="{StaticResource ButtonTemplate}"/>
+            <Button Content="Go back" Grid.Row="2" Command="{Binding GoToStartCmd}" Margin="30, 20" FontSize="18" FontWeight="SemiBold"/>
+        </Grid>
+
+        <Grid Name="CustomServerGrid" Style="{StaticResource LoginGrid}" Visibility="{Binding CustomServerGridVisibility}" MinWidth="400">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="auto"/>
+                <ColumnDefinition/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition/>
+                <RowDefinition/>
+                <RowDefinition/>
+                <RowDefinition/>
+                <RowDefinition/>
+                <RowDefinition/>
+                <RowDefinition/>
+                <RowDefinition Height="30"/>
+                <RowDefinition/>
+            </Grid.RowDefinitions>
+
+            <Label Content="Enter servers' data" Style="{StaticResource SubcapitalLabel}" 
+                   Grid.Row="0" Grid.ColumnSpan="2"/>
+
+            <Label Grid.Row="1" Grid.Column="0" Content="SMTP Host: "/>
+            <TextBox Grid.Row="1" Grid.Column="1" MinWidth="250"
+                     Text="{Binding Smtpserv, UpdateSourceTrigger=PropertyChanged}"/>
+
+            <Label Grid.Row="2" Grid.Column="0" Content="SMTP Port: "/>
+            <TextBox Grid.Row="2" Grid.Column="1" MinWidth="250" 
+                     Text="{Binding Smtpport, UpdateSourceTrigger=PropertyChanged}"/>
+
+            <Label Grid.Row="3" Grid.Column="0" Content="SMTP security: "/>
+            <ComboBox Grid.Row="3" Grid.Column="1" ItemsSource="{Binding Securities}"
+                      SelectedItem="{Binding Smtpsec}"/>
+
+            <Label Grid.Row="4" Grid.Column="0" Content="IMAP Host: "/>
+            <TextBox Grid.Row="4" Grid.Column="1" MinWidth="250"
+                     Text="{Binding Imapserv, UpdateSourceTrigger=PropertyChanged}"/>
+
+            <Label Grid.Row="5" Grid.Column="0" Content="IMAP Port: "/>
+            <TextBox Grid.Row="5" Grid.Column="1" MinWidth="250"
+                     Text="{Binding Imapport, UpdateSourceTrigger=PropertyChanged}"/>
+
+            <Label Grid.Row="6" Grid.Column="0" Content="IMAP security: "/>
+            <ComboBox Grid.Row="6" Grid.Column="1" ItemsSource="{Binding Securities}"
+                      SelectedItem="{Binding Imapsec}"/>
+
+            <TextBlock Grid.Row="7" Grid.ColumnSpan="2" TextWrapping="Wrap" Margin="10" 
+                       Foreground="#f54248" Visibility="{Binding Error1Visibility}">
+                Double check the data and your internet connection
+            </TextBlock>
+
+            <Button Content="Go back" Grid.Row="9" Grid.Column="0" HorizontalAlignment="Left"
+                    Command="{Binding GoToSelectionCmd}"/>
+            <Button Content="Next" Grid.Row="9" Grid.Column="1" HorizontalAlignment="Right" 
+                    Command="{Binding AddServerCmd}"/>
+        </Grid>
+
+        <Grid Name="UsernameInputGrid" Style="{StaticResource LoginGrid}" Visibility="{Binding UsernameInputGridVisibility}" MinWidth="400">
+            <Grid.RowDefinitions>
+                <RowDefinition/>
+                <RowDefinition/>
+                <RowDefinition/>
+                <RowDefinition/>
+                <RowDefinition/>
+            </Grid.RowDefinitions>
+
+            <Label Content="Enter your email" Style="{StaticResource SubcapitalLabel}" Grid.Row="0"/>
+            <TextBox Text="{Binding Uname, UpdateSourceTrigger=PropertyChanged}" Grid.Row="1" Margin="30,30,30,10"/>
+            <TextBlock Grid.Row="2" TextWrapping="Wrap" Margin="30, 20">
+                Email should contain one @ symbol <LineBreak/> and a domain (example@example.com)
+            </TextBlock>
+            <TextBlock Grid.Row="3" Foreground="#f54248" TextWrapping="Wrap" Margin="30, 20" Visibility="{Binding Error1Visibility}">
+                Account with this username already exists
+            </TextBlock>
+            <Button Content="Go back" Grid.Row="4" HorizontalAlignment="Left" Command="{Binding GoBackToCreationCmd}"/>
+            <Button Content="Next" Grid.Row="4" HorizontalAlignment="Right" Command="{Binding CheckEmailCmd}"/>
+        </Grid>
+
+        <Grid Name="ExistingAccountGrid" Style="{StaticResource LoginGrid}" Visibility="{Binding ExistingGridVisibility}" MinWidth="300">
+            <Grid.RowDefinitions>
+                <RowDefinition/>
+                <RowDefinition/>
+                <RowDefinition/>
+                <RowDefinition/>
+            </Grid.RowDefinitions>
+
+            <Label Content="Select account" Style="{StaticResource SubcapitalLabel}" Grid.Row="0"/>
+            <ComboBox Grid.Row="1" Margin="30, 30" ItemsSource="{Binding Users}" SelectedItem="{Binding User}"/>
+            <Button Content="Go back" Grid.Row="3" Command="{Binding GoToStartCmd}" HorizontalAlignment="Left"/>
+            <Button Content="Next" Grid.Row="3" HorizontalAlignment="Right" Command="{Binding SelectEmailCmd}"/>
+        </Grid>
+
+        <Grid Name="PasswordGrid" Style="{StaticResource LoginGrid}" Visibility="{Binding PasswordGridVisibility}" MinWidth="400">
+            <Grid.RowDefinitions>
+                <RowDefinition/>
+                <RowDefinition/>
+                <RowDefinition Height="auto"/>
+                <RowDefinition/>
+            </Grid.RowDefinitions>
+
+            <Label Content="Enter your password" Style="{StaticResource SubcapitalLabel}" Grid.Row="0"/>
+            <TextBox Text="{Binding Pwd, UpdateSourceTrigger=PropertyChanged}" Grid.Row="1" Margin="30,30,30,40"/>
+            <TextBlock Grid.Row="2" Foreground="#f54248" TextWrapping="Wrap" Margin="30, 0, 30, 30" Visibility="{Binding Error2Visibility}">
+                Incorrect username or password
+            </TextBlock>
+            <TextBlock Grid.Row="2" Foreground="#f54248" TextWrapping="Wrap" Margin="30, 0, 30, 30" Visibility="{Binding Error1Visibility}">
+                No internet or incorrect server data
+            </TextBlock>
+            <Button Content="Go back" Grid.Row="3" Command="{Binding GoBackFromPwdCmd}" HorizontalAlignment="Left"/>
+            <Button Content="Next" Grid.Row="3" HorizontalAlignment="Right" Command="{Binding CheckPwdCmd}" 
+                    CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=Window}}"/>
+        </Grid>
+    </Grid>
+</Window>
