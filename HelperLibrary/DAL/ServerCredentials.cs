@@ -56,5 +56,14 @@ namespace HelperLibrary.DAL
             => !(a == b);
 
         public bool Equals(ServerCredentials? other) => this == other;
+
+        public override bool Equals(object? obj)
+        {
+            if (obj is ServerCredentials sc)
+                return this == sc;
+            else return false;
+        }
+
+        public override int GetHashCode() => base.GetHashCode();
     }
 }

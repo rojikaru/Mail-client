@@ -35,5 +35,14 @@ namespace HelperLibrary.DAL
             => !(left == right);
 
         public bool Equals(ServerData? other) => this == other;
+
+        public override bool Equals(object? obj)
+        {
+            if (obj is ServerData data)
+                return this == data;
+            else return false;
+        }
+
+        public override int GetHashCode() => base.GetHashCode();
     }
 }

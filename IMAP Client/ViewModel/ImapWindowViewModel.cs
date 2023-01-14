@@ -131,7 +131,7 @@ namespace IMAP_Client.ViewModel
 
             CurrentDispatcher = Dispatcher.CurrentDispatcher;
 
-            GC.Collect();
+            GC.Collect(GC.MaxGeneration);
         }
         
         private async Task ExecuteWriteCmd()

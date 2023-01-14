@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:SMTP_Client"
+        xmlns:Model="clr-namespace:SMTP_Client.Model"
         xmlns:b="clr-namespace:SMTP_Client.View"
         xmlns:VM="clr-namespace:SMTP_Client.ViewModel"
         mc:Ignorable="d"
@@ -11,6 +11,9 @@
     <Window.DataContext>
         <VM:SmtpWindowViewModel/>
     </Window.DataContext>
+    <Window.Resources>
+        <Model:FileNameValueConverter x:Key="FileNameValueConverter"/>
+    </Window.Resources>
     <Grid>
         <!-- 
             TODO:
@@ -56,7 +59,7 @@
                 <ListBox Name="AttachmentsListBox" ItemsSource="{Binding AttachmentsList}" BorderThickness="0">
                     <ListBox.ItemsPanel>
                         <ItemsPanelTemplate>
-                            <StackPanel Orientation="Horizontal"/>
+                            <WrapPanel Orientation="Horizontal"/>
                         </ItemsPanelTemplate>
                     </ListBox.ItemsPanel>
                     <ListBox.ItemTemplate>
@@ -68,7 +71,7 @@
                                 </Grid.ColumnDefinitions>
 
                                 <!--<Image-->
-                                <Label Content="{Binding FileName}" Grid.Column="0"/>
+                                <Label FontSize="14" Content="{Binding FileName,Converter={StaticResource FileNameValueConverter}}" Grid.Column="0"/>
                                 <Button Grid.Column="1" Content="X" 
                                         Command="{Binding DataContext.RemoveCmd, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"/>
                             </Grid>
