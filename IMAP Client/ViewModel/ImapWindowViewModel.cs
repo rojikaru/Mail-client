@@ -1,10 +1,12 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.Collections;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HelperLibrary.DAL;
 using MailKit;
 using MailKit.Net.Imap;
 using MailKit.Search;
 using MimeKit;
+using Org.BouncyCastle.Asn1.X509;
 using SMTP_Client.View;
 using SMTP_Client.ViewModel;
 using System;
@@ -24,8 +26,8 @@ namespace IMAP_Client.ViewModel
         private static IDictionary<string, SearchQuery> m_Queries { get; }
         public static IEnumerable<string> StrQueries => m_Queries.Keys;
         public ObservableCollection<MimeMessage> Messages { get; }
-        private IDictionary<string, IMailFolder> m_Folders { get; }
-        public IEnumerable<string> Folders => m_Folders.Keys;
+        private ObservableCollection<IMailFolder> MailFolders { get; }
+        public ObservableCollection<string> Folders { get; }
 
         public IRelayCommand SearchCmd { get; }
         public IRelayCommand WriteCmd { get; }
@@ -70,15 +72,11 @@ namespace IMAP_Client.ViewModel
                 Task.Run(async () =>
                 {
                     await Task.Delay(1000);
-                    lock (Client.SyncRoot)
-                    {
-                        SelectedFolder?.Close();
-                        m_SelectedFolder = value;
-                        SelectedFolder = m_Folders[value];
-                        SelectedFolder.Open(FolderAccess.ReadWrite);
-
-                        ExecuteSearch(SearchQuery.All);
-                    }
+                    SelectedFolder?.Close();
+                    m_SelectedFolder = value;
+                    SelectedFolder = MailFolders.Where(x => x.Name == value).FirstOrDefault();
+                    SelectedFolder?.Open(FolderAccess.ReadWrite);
+                    ExecuteSearch(SearchQuery.All);
                 });
             }
         }
@@ -91,11 +89,8 @@ namespace IMAP_Client.ViewModel
             get => _cancelloadingsource;
             set
             {
-                lock (this)
-                {
-                    _cancelloadingsource?.Dispose();
-                    _cancelloadingsource = value;
-                }
+                _cancelloadingsource?.Dispose();
+                _cancelloadingsource = value;
             }
         }
         private CancellationToken CancelLoadingToken => CancelLoadingSource?.Token ?? default;
@@ -120,7 +115,8 @@ namespace IMAP_Client.ViewModel
         public ImapWindowViewModel()
         {
             Messages = new();
-            m_Folders = new Dictionary<string, IMailFolder>();
+            MailFolders = new();
+            Folders = new();
             Client = new ImapClient();
 
             SearchCmd = new RelayCommand(ExecuteSearchCmd, CanExecuteSearchCmd);
@@ -142,8 +138,13 @@ namespace IMAP_Client.ViewModel
             wnd.ShowDialog();
         }
 
-        private void ExecuteSearchCmd()
-            => ExecuteSearch(SearchKey.Trim());
+        private async void ExecuteSearchCmd()
+        {
+            CancelLoadingSource?.Cancel();
+            await Task.Delay(1000);
+            await CurrentDispatcher.InvokeAsync(Messages.Clear);
+            ExecuteSearch(SearchKey.Trim());
+        }
         private bool CanExecuteSearchCmd()
             => !string.IsNullOrWhiteSpace(SearchKey);
 
@@ -162,7 +163,10 @@ namespace IMAP_Client.ViewModel
                 var folders = Client.GetFolders(ns)
                                     .Where(x => (x.Attributes & FolderAttributes.NonExistent) != FolderAttributes.NonExistent);
                 foreach (var folder in folders)
-                    m_Folders.Add(folder.Name, folder);
+                {
+                    Folders.Add(folder.Name);
+                    MailFolders.Add(folder);
+                }
             }
 
             SelectedStrFolder = Folders.First();
@@ -170,6 +174,8 @@ namespace IMAP_Client.ViewModel
 
         private static SearchQuery AggregateQueriesByTerm(string term)
         {
+            term = term.Trim();
+
             SearchQuery[] queries = new[]
             {
                 SearchQuery.BccContains(term),
@@ -188,7 +194,7 @@ namespace IMAP_Client.ViewModel
             return result;
         }
 
-        private void ExecuteSearch(string query) => ExecuteSearch(AggregateQueriesByTerm(query));
+        private void ExecuteSearch(string query) => ExecuteSearch(AggregateQueriesByTerm(query).Or(AggregateQueriesByTerm(query.ToLower())));
         private void ExecuteSearch(SearchQuery query)
         {
             if (SelectedFolder == null) return;
@@ -209,7 +215,7 @@ namespace IMAP_Client.ViewModel
                         return;
 
                     msg = SelectedFolder.GetMessage(id);
-                    CurrentDispatcher.InvokeAsync(() => Messages.Add(msg), DispatcherPriority.DataBind, CancelLoadingToken);
+                    CurrentDispatcher.InvokeAsync(() => Messages.Add(msg), DispatcherPriority.Normal, CancelLoadingToken);
                 }
             }
 

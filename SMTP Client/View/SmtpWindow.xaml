@@ -15,11 +15,6 @@
         <Model:FileNameValueConverter x:Key="FileNameValueConverter"/>
     </Window.Resources>
     <Grid>
-        <!-- 
-            TODO:
-            Attachments list
-            Add bindings
-        -->
         <Grid Margin="10">
             <Grid.RowDefinitions>
                 <RowDefinition Height="40"/>
@@ -51,15 +46,10 @@
 
             <Label Grid.Row="4" Grid.Column="0" Content="Attachments: "/>
             <StackPanel Margin="5, 0" VerticalAlignment="Center" Grid.Row="4" Grid.Column="1" Orientation="Horizontal">
-                
-                <!-- 
-                     Place for the stackpanel of attachments
-                     An attachment should have the template with delete button 
-                -->
                 <ListBox Name="AttachmentsListBox" ItemsSource="{Binding AttachmentsList}" BorderThickness="0">
                     <ListBox.ItemsPanel>
                         <ItemsPanelTemplate>
-                            <WrapPanel Orientation="Horizontal"/>
+                            <WrapPanel MaxWidth="{Binding Source={RelativeSource AncestorType=StackPanel}, Path=Width}" Orientation="Horizontal"/>
                         </ItemsPanelTemplate>
                     </ListBox.ItemsPanel>
                     <ListBox.ItemTemplate>

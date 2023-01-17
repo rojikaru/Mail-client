@@ -74,10 +74,10 @@ namespace Login.ViewModel
             CheckPwdCmd = new RelayCommand<Window>(ExecuteCheckPwdCmd, CanExecuteCheckPwdCmd);
             GoToStartCmd = new RelayCommand(ExecuteGoToStartCmd);
             SelectEmailCmd = new RelayCommand(ExecuteSelectEmailCmd, CanExecuteSelectEmailCmd);
-            GoToSelectionCmd = new RelayCommand(ExecuteGoToSelectionCmd);
+            GoToSelectionCmd = new RelayCommand(ExecuteGoToSelectionCmd, CanExecuteGoToSelectionCmd);
             AddServerCmd = new RelayCommand(ExecuteAddServerCmd, CanExecuteAddServerCmd);
             GoBackToCreationCmd = new RelayCommand(ExecuteGoBackToCreationCmd);
-            GoBackFromPwdCmd = new RelayCommand(ExecuteGoBackFromPwdCmd);
+            GoBackFromPwdCmd = new RelayCommand(ExecuteGoBackFromPwdCmd, CanExecuteGoBackFromPwdCmd);
 
             AllInvisible();
             StartGridVisibility = Visible;
@@ -112,6 +112,7 @@ namespace Login.ViewModel
             if (ToUnameInput == true) UsernameInputGridVisibility = Visible;
             else if (ToUnameInput == false) ExistingGridVisibility = Visible;
         }
+        private bool CanExecuteGoBackFromPwdCmd() => PasswordChecking != true;
 
         private bool? ToSelection;
         private void ExecuteGoBackToCreationCmd()
@@ -131,6 +132,7 @@ namespace Login.ViewModel
         {
             AddingServer = true;
             AddServerCmd.NotifyCanExecuteChanged();
+            GoToSelectionCmd.NotifyCanExecuteChanged();
             Error1Visibility = Collapsed;
             try
             {
@@ -143,6 +145,7 @@ namespace Login.ViewModel
 
                 AddingServer = false;
                 AddServerCmd.NotifyCanExecuteChanged();
+                GoToSelectionCmd.NotifyCanExecuteChanged();
 
                 AllInvisible();
                 UsernameInputGridVisibility = Visible;
@@ -156,6 +159,7 @@ namespace Login.ViewModel
                 Error1Visibility = Visible;
                 AddingServer = false;
                 AddServerCmd.NotifyCanExecuteChanged();
+                GoToSelectionCmd.NotifyCanExecuteChanged();
             }
         }
         private bool CanExecuteAddServerCmd()
@@ -176,6 +180,7 @@ namespace Login.ViewModel
 
             User = new();
         }
+        private bool CanExecuteGoToSelectionCmd() => AddingServer != true;
 
         private void ExecuteSelectEmailCmd()
         {
@@ -236,6 +241,7 @@ namespace Login.ViewModel
             Error1Visibility = Error2Visibility = Collapsed;
             PasswordChecking = true;
             CheckPwdCmd.NotifyCanExecuteChanged();
+            GoBackFromPwdCmd.NotifyCanExecuteChanged();
 
             try
             {
@@ -262,6 +268,7 @@ namespace Login.ViewModel
 
             PasswordChecking = false;
             CheckPwdCmd.NotifyCanExecuteChanged();
+            GoBackFromPwdCmd.NotifyCanExecuteChanged();
         }
         private bool CanExecuteCheckPwdCmd(Window? wnd) => !string.IsNullOrWhiteSpace(Pwd) && PasswordChecking != true;
 

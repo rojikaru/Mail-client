@@ -59,6 +59,7 @@
             <TabControl Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2">
                 <TabItem Header="Content">
                     <WebBrowser Name="HtmlBodyPresenter" VerticalAlignment="Center"/>
+                    
                 </TabItem>
                 <TabItem Header="Attachments" Name="AttachmentsTabItem">
                     <ListBox Name="AttachmentsListBox"/>
