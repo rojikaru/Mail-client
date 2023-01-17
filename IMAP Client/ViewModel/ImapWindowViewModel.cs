@@ -2,6 +2,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HelperLibrary.DAL;
+using IMAP_Client.View;
 using MailKit;
 using MailKit.Net.Imap;
 using MailKit.Search;
@@ -31,8 +32,10 @@ namespace IMAP_Client.ViewModel
 
         public IRelayCommand SearchCmd { get; }
         public IRelayCommand WriteCmd { get; }
+        public IRelayCommand OpenLetterCmd { get; }
 
         private IImapClient Client { get; }
+        public MimeMessage? SelectedMessage { get; set; }
 
         [ObservableProperty, NotifyCanExecuteChangedFor(nameof(SearchCmd))]
         private string m_SearchKey;
@@ -44,7 +47,7 @@ namespace IMAP_Client.ViewModel
             get => m_SelectedQuery ?? string.Empty;
             set
             {
-                CancelLoadingSource?.Cancel();
+                Cancel?.Cancel();
                 SetProperty(ref m_SelectedQuery, value, nameof(SelectedQuery));
                 SearchCmd.NotifyCanExecuteChanged();
                 Messages.Clear();
@@ -66,7 +69,7 @@ namespace IMAP_Client.ViewModel
             get => m_SelectedFolder!;
             set
             {
-                CancelLoadingSource?.Cancel();
+                Cancel?.Cancel();
                 Messages.Clear();
 
                 Task.Run(async () =>
@@ -84,7 +87,7 @@ namespace IMAP_Client.ViewModel
         private IMailFolder? SelectedFolder;
 
         private CancellationTokenSource? _cancelloadingsource;
-        private CancellationTokenSource? CancelLoadingSource
+        private CancellationTokenSource? Cancel
         {
             get => _cancelloadingsource;
             set
@@ -93,7 +96,7 @@ namespace IMAP_Client.ViewModel
                 _cancelloadingsource = value;
             }
         }
-        private CancellationToken CancelLoadingToken => CancelLoadingSource?.Token ?? default;
+        private CancellationToken CancelToken => Cancel?.Token ?? default;
 
         private Dispatcher CurrentDispatcher { get; }
 
@@ -121,6 +124,7 @@ namespace IMAP_Client.ViewModel
 
             SearchCmd = new RelayCommand(ExecuteSearchCmd, CanExecuteSearchCmd);
             WriteCmd = new AsyncRelayCommand(ExecuteWriteCmd);
+            OpenLetterCmd = new RelayCommand<MimeMessage>(ExecuteOpenLetterCmd);
 
             m_SearchKey = string.Empty;
             SelectedQuery = "All";
@@ -129,7 +133,19 @@ namespace IMAP_Client.ViewModel
 
             GC.Collect(GC.MaxGeneration);
         }
-        
+
+        private void ExecuteOpenLetterCmd(MimeMessage? obj)
+        {
+            if (obj == null) return;
+
+            ViewEmailWindow wnd = new();
+            var VM = (ViewEmailWindowViewModel)wnd.DataContext;
+            VM.Load(obj);
+            wnd.ShowDialog();
+
+            SelectedMessage = null;
+        }
+
         private async Task ExecuteWriteCmd()
         {
             SmtpWindow wnd = new();
@@ -140,10 +156,10 @@ namespace IMAP_Client.ViewModel
 
         private async void ExecuteSearchCmd()
         {
-            CancelLoadingSource?.Cancel();
+            Cancel?.Cancel();
             await Task.Delay(1000);
             await CurrentDispatcher.InvokeAsync(Messages.Clear);
-            ExecuteSearch(SearchKey.Trim());
+            ExecuteSearch(SearchKey);
         }
         private bool CanExecuteSearchCmd()
             => !string.IsNullOrWhiteSpace(SearchKey);
@@ -194,14 +210,21 @@ namespace IMAP_Client.ViewModel
             return result;
         }
 
-        private void ExecuteSearch(string query) => ExecuteSearch(AggregateQueriesByTerm(query).Or(AggregateQueriesByTerm(query.ToLower())));
+        private void ExecuteSearch(string query)
+        {
+            query = query.Trim();
+            ExecuteSearch(
+                AggregateQueriesByTerm(query)
+                .Or(AggregateQueriesByTerm(query.ToLower()))
+                );
+        }
         private void ExecuteSearch(SearchQuery query)
         {
             if (SelectedFolder == null) return;
 
             lock (Client.SyncRoot)
             {
-                CancelLoadingSource = new();
+                Cancel = new();
 
                 var idlist = SelectedFolder.Search(query).Reverse().ToArray();
 
@@ -211,16 +234,16 @@ namespace IMAP_Client.ViewModel
                 MimeMessage msg;
                 foreach (var id in idlist)
                 {
-                    if (CancelLoadingToken.IsCancellationRequested)
+                    if (CancelToken.IsCancellationRequested)
                         return;
 
                     msg = SelectedFolder.GetMessage(id);
-                    CurrentDispatcher.InvokeAsync(() => Messages.Add(msg), DispatcherPriority.Normal, CancelLoadingToken);
+                    CurrentDispatcher.InvokeAsync(() => Messages.Add(msg), DispatcherPriority.Normal, CancelToken);
                 }
             }
 
-            //if (CancelLoadingToken.IsCancellationRequested)
-            //    CancelLoadingSource = new();
+            if (CancelToken.IsCancellationRequested)
+                Cancel = new();
         }
 
         ~ImapWindowViewModel()

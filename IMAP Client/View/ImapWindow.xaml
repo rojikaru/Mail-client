@@ -37,10 +37,15 @@
             <ListView Grid.Column="0" Grid.Row="1" Name="FoldersBox" DisplayMemberPath=""
                       ItemsSource="{Binding Folders}" SelectedItem="{Binding SelectedStrFolder}"/>
             <ListBox Grid.Column="1" Grid.Row="1" Grid.ColumnSpan="3" Name="EmailBox"
-                     ItemsSource="{Binding Messages}">
+                     ItemsSource="{Binding Messages}" SelectedItem="{Binding SelectedMessage}">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <Grid>
+                            <Grid.InputBindings>
+                                <MouseBinding Gesture="LeftDoubleClick" 
+                                    Command="{Binding DataContext.OpenLetterCmd, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    CommandParameter="{Binding ElementName=EmailBox, Path=SelectedItem}"/>
+                            </Grid.InputBindings>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="0.5*"/>
                                 <ColumnDefinition Width="0.5*"/>
