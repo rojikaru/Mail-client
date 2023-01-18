@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:IMAP_Client"
         xmlns:VM="clr-namespace:IMAP_Client.ViewModel"
         mc:Ignorable="d"
-        Title="Email client" Height="450" Width="800">
+        Title="Email client" MinHeight="450" MinWidth="800">
     <Window.DataContext>
         <VM:ImapWindowViewModel/>
     </Window.DataContext>

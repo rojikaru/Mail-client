@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using HelperLibrary;
 using HelperLibrary.DAL;
 using MailKit.Net.Smtp;
+using MailKit.Security;
 using Microsoft.Win32;
 using MimeKit;
 using System;
@@ -16,7 +17,7 @@ namespace SMTP_Client.ViewModel
     public partial class SmtpWindowViewModel : ObservableObject
     {
         public static MessagePriority[] Priorities { get; }
-        public ObservableCollection<MimePart> AttachmentsList { get; }
+        public ObservableCollection<string> AttachmentsList { get; }
 
         private ISmtpClient Client { get; }
         private OpenFileDialog Dialog { get; }
@@ -46,7 +47,7 @@ namespace SMTP_Client.ViewModel
         public SmtpWindowViewModel()
         {
             AddCmd = new RelayCommand(ExecuteAddCommand);
-            RemoveCmd = new RelayCommand<MimePart>(ExecuteRemoveCommand);
+            RemoveCmd = new RelayCommand<string>(ExecuteRemoveCommand);
             SendCmd = new AsyncRelayCommand(ExecuteSendCommand, CanExecuteSendCommand);
 
             to = subject = body = From = string.Empty;
@@ -81,25 +82,28 @@ namespace SMTP_Client.ViewModel
 
             if (Dialog.ShowDialog() == true)
                 foreach (var path in Dialog.FileNames)
-                    AttachmentsList.Add(new MimePart() { FileName = path });
+                    AttachmentsList.Add(path);
         }
 
-        private void ExecuteRemoveCommand(MimePart? entity)
+        private void ExecuteRemoveCommand(string? entity)
         {
             if (entity == null) return;
             AttachmentsList.Remove(entity);
         }
 
-        public async Task Auth(ServerData SmtpData, string username)
+        public async Task Auth(ServerData SmtpData, string uname, string pwd)
         {
-            await Client.ConnectAsync(SmtpData.Host, SmtpData.Port, SmtpData.SecurityOptions);
-            From = username;
-        }
-        public async Task Auth(UserCredentials credentials) => await Auth(credentials.Servers.SmtpServer!, credentials.UserName);
+            From = uname;
 
-        private static MimeMessage BuildMessage(string from, string to, string subject, string body, params MimePart[] attachments)
+            await Client.ConnectAsync(SmtpData.Host, SmtpData.Port, SmtpData.SecurityOptions);
+            await Client.AuthenticateAsync(uname, pwd);
+        }
+        public async Task Auth(UserCredentials credentials, string pwd) 
+            => await Auth(credentials.Servers.SmtpServer!, credentials.UserName, pwd);
+
+        private static MimeMessage BuildMessage(string from, string to, string subject, string body, params string[] attachments)
             => BuildMessage(from, to, subject, body, false, attachments);
-        private static MimeMessage BuildMessage(string from, string to, string subject, string body, bool isHtml, params MimePart[] attachments)
+        private static MimeMessage BuildMessage(string from, string to, string subject, string body, bool isHtml, params string[] attachments)
         {
             BodyBuilder builder = new();
 
@@ -120,7 +124,11 @@ namespace SMTP_Client.ViewModel
 
         ~SmtpWindowViewModel()
         {
-            Client.Disconnect(true);
+            try
+            {
+                Client.Disconnect(true);
+            }
+            catch { /* ignore */ }
         }
     }
 }

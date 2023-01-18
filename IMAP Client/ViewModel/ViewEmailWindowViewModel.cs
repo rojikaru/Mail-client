@@ -4,6 +4,7 @@ using HelperLibrary;
 using IMAP_Client.Model;
 using Microsoft.Web.WebView2.Wpf;
 using MimeKit;
+using MimeKit.Text;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -38,6 +39,7 @@ namespace IMAP_Client.ViewModel
             title = string.Empty;
         }
 
+        private static readonly string DownloadsFolder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + @"\Downloads\";
         private void ExecuteOpenFileCmd(TaggedFile? obj)
         {
             if (obj == null ||
@@ -54,25 +56,25 @@ namespace IMAP_Client.ViewModel
                     "Error!", MessageBoxButton.YesNo, MessageBoxImage.Warning)
                     == MessageBoxResult.Yes)
                 {
-                    string dlfolder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + @"\Downloads\",
-                           dest = dlfolder + source.Name;
+                    source.CopyTo(GetAvailablePath(DownloadsFolder, ShortNameWithNoExtension(source), source.Extension));
 
-                    if (!File.Exists(dest))
-                        File.Copy(source.FullName, dest);
-                    else
+                    string GetAvailablePath(string PromptedFolder, string filename, string Extension)
                     {
-                        string dest1;
+                        string freepath = PromptedFolder + filename + Extension;
                         for (int i = 0; ; i++)
                         {
-                            dest1 = $"{dlfolder}{source.Name[..source.Name.LastIndexOf('.')]} - copy ({i}){source.Extension}";
-                            if (!File.Exists(dest1)) break;
+                            if (!File.Exists(freepath)) break;
+                            freepath = $"{PromptedFolder}{source.Name[..source.Name.LastIndexOf('.')]} - copy ({i}){source.Extension}";
                         }
-                        File.Copy(source.FullName, dest1);
-                        MessageBox.Show("Copied!", "Information", MessageBoxButton.OK, MessageBoxImage.Information);
+                        return freepath;
                     }
+                    string ShortNameWithNoExtension(FileInfo file)
+                        => file.Name[..file.Name.LastIndexOf('.')];
                 }
             }
         }
+
+        private const string tempfolder = "Temp/";
 
         private static List<TaggedFile> GetAttachments(MimeMessage Message)
         {
@@ -82,10 +84,10 @@ namespace IMAP_Client.ViewModel
             {
                 foreach (var attachment in Message.Attachments)
                 {
-                    string fileName = attachment.ContentType.Name;
-                    Directory.CreateDirectory("Temp");
+                    string fileName = new FileInfo(attachment.ContentType.Name).Name;
+                    Directory.CreateDirectory(tempfolder);
 
-                    using var stream = File.Create("Temp/" + fileName);
+                    using var stream = File.Create(tempfolder + fileName);
                     if (attachment is MessagePart rfc822)
                         rfc822.Message.WriteTo(stream);
                     else
@@ -110,14 +112,22 @@ namespace IMAP_Client.ViewModel
             Message = msg;
             Title = $"{msg.Subject} - Email viewer";
 
+            string html = msg.HtmlBody ?? string.Empty;
+
             await Browser.EnsureCoreWebView2Async();
+            if (msg.HtmlBody != null)
             await CurrentDispatcher.InvokeAsync(() => 
             {
-                Browser.NavigateToString(msg.HtmlBody);
+                Browser.NavigateToString(html);
             });
 
             foreach(var attachment in GetAttachments(Message))
                 Attachments.Add(attachment);
+        }
+
+        ~ViewEmailWindowViewModel()
+        {
+            Directory.Delete(tempfolder, true);
         }
     }
 }

@@ -49,7 +49,7 @@
 
             <Label Grid.Row="3" Grid.Column="0" Content="Date:"/>
             <Label Name="DateLabel" Grid.Row="3" Grid.Column="1"
-               Content="{Binding Message.Date}"/>
+               Content="{Binding Message.Date, StringFormat=f}"/>
 
             <StackPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="-10, 10">
                 <!-- Controls : add some more -->

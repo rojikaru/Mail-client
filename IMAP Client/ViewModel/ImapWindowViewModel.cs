@@ -35,6 +35,7 @@ namespace IMAP_Client.ViewModel
         public IRelayCommand OpenLetterCmd { get; }
 
         private IImapClient Client { get; }
+        private string? pwd;
         public MimeMessage? SelectedMessage { get; set; }
 
         [ObservableProperty, NotifyCanExecuteChangedFor(nameof(SearchCmd))]
@@ -150,7 +151,7 @@ namespace IMAP_Client.ViewModel
         {
             SmtpWindow wnd = new();
             var VM = (SmtpWindowViewModel)wnd.DataContext;
-            await VM.Auth(creds!);
+            await VM.Auth(creds!, pwd!);
             wnd.ShowDialog();
         }
 
@@ -186,6 +187,7 @@ namespace IMAP_Client.ViewModel
             }
 
             SelectedStrFolder = Folders.First();
+            this.pwd = pwd;
         }
 
         private static SearchQuery AggregateQueriesByTerm(string term)
