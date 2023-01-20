@@ -134,7 +134,7 @@
             </Grid.RowDefinitions>
 
             <Label Content="Enter your password" Style="{StaticResource SubcapitalLabel}" Grid.Row="0"/>
-            <TextBox Text="{Binding Pwd, UpdateSourceTrigger=PropertyChanged}" Grid.Row="1" Margin="30,30,30,40"/>
+            <PasswordBox PasswordChanged="PasswordBox_PasswordChanged" Grid.Row="1" Margin="30,30,30,40"/>
             <TextBlock Grid.Row="2" Foreground="#f54248" TextWrapping="Wrap" Margin="30, 0, 30, 30" Visibility="{Binding Error2Visibility}">
                 Incorrect username or password
             </TextBlock>

@@ -7,6 +7,8 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
+using System.Net;
+using System.Security;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -30,7 +32,7 @@ namespace HelperLibrary.DAL
         private const string imapfaulted = "Provided IMAP server parameters are not valid";
         private const string authfaulted = "Username or password is not correct";
 
-        public static async Task TryAuth(UserCredentials credentials, string pwd, bool Login = true, bool Smtp = true, bool Imap = true)
+        public static async Task TryAuth(UserCredentials credentials, SecureString pwd, bool Login = true, bool Smtp = true, bool Imap = true)
         {
             ServerData data;
             if (Smtp)
@@ -67,7 +69,8 @@ namespace HelperLibrary.DAL
 
                 try
                 {
-                    if (Login) await client.AuthenticateAsync(credentials.UserName, pwd);
+                    if (Login) 
+                        await client.AuthenticateAsync(new NetworkCredential(credentials.UserName, pwd));
                 }
                 catch
                 {

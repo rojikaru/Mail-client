@@ -14,6 +14,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Security;
 using System.Threading.Tasks;
 using System.Windows;
 using static System.Windows.Visibility;
@@ -44,7 +45,6 @@ namespace Login.ViewModel
         [ObservableProperty] private Visibility m_error1Visibility;
 
         [ObservableProperty, NotifyCanExecuteChangedFor(nameof(CheckEmailCmd))] private string? m_uname;
-        [ObservableProperty, NotifyCanExecuteChangedFor(nameof(CheckPwdCmd))] private string? m_pwd;
         [ObservableProperty, NotifyCanExecuteChangedFor(nameof(SelectEmailCmd))] private UserCredentials? m_user;
         [ObservableProperty, NotifyCanExecuteChangedFor(nameof(AddServerCmd))] private string? smtpserv;
         [ObservableProperty, NotifyCanExecuteChangedFor(nameof(AddServerCmd))] private string? imapserv;
@@ -52,6 +52,19 @@ namespace Login.ViewModel
         [ObservableProperty, NotifyCanExecuteChangedFor(nameof(AddServerCmd))] private string? imapport;
         [ObservableProperty, NotifyCanExecuteChangedFor(nameof(AddServerCmd))] private SecureSocketOptions smtpsec;
         [ObservableProperty, NotifyCanExecuteChangedFor(nameof(AddServerCmd))] private SecureSocketOptions imapsec;
+
+        private SecureString? m_pwd;
+        public SecureString Pwd
+        {
+            get => m_pwd!;
+            set
+            {
+                m_pwd?.Dispose();
+
+                if (SetProperty(ref m_pwd, value, nameof(Pwd)))
+                    CheckPwdCmd.NotifyCanExecuteChanged();
+            }
+        }
 
         private IUnitOfWork UnitOfWork { get; }
         private IGenericRepository<ServerData> Serverdatas => UnitOfWork.Repository<ServerData>();
@@ -74,16 +87,18 @@ namespace Login.ViewModel
             CheckPwdCmd = new RelayCommand<Window>(ExecuteCheckPwdCmd, CanExecuteCheckPwdCmd);
             GoToStartCmd = new RelayCommand(ExecuteGoToStartCmd);
             SelectEmailCmd = new RelayCommand(ExecuteSelectEmailCmd, CanExecuteSelectEmailCmd);
-            GoToSelectionCmd = new RelayCommand(ExecuteGoToSelectionCmd);
+            GoToSelectionCmd = new RelayCommand(ExecuteGoToSelectionCmd, CanExecuteGoToSelectionCmd);
             AddServerCmd = new RelayCommand(ExecuteAddServerCmd, CanExecuteAddServerCmd);
             GoBackToCreationCmd = new RelayCommand(ExecuteGoBackToCreationCmd);
-            GoBackFromPwdCmd = new RelayCommand(ExecuteGoBackFromPwdCmd);
+            GoBackFromPwdCmd = new RelayCommand(ExecuteGoBackFromPwdCmd, CanExecuteGoBackFromPwdCmd);
 
             AllInvisible();
             StartGridVisibility = Visible;
 
             CredentialsContext cnt = new(false);
             UnitOfWork = new GenericUnitOfWork(cnt);
+
+            Pwd = new();
 
             if (Servercreds.Count == 0)
             {
@@ -107,11 +122,12 @@ namespace Login.ViewModel
                 return;
 
             AllInvisible();
-            Pwd = string.Empty;
+            Pwd = new();
 
             if (ToUnameInput == true) UsernameInputGridVisibility = Visible;
             else if (ToUnameInput == false) ExistingGridVisibility = Visible;
         }
+        private bool CanExecuteGoBackFromPwdCmd() => PasswordChecking != true;
 
         private bool? ToSelection;
         private void ExecuteGoBackToCreationCmd()
@@ -131,6 +147,7 @@ namespace Login.ViewModel
         {
             AddingServer = true;
             AddServerCmd.NotifyCanExecuteChanged();
+            GoToSelectionCmd.NotifyCanExecuteChanged();
             Error1Visibility = Collapsed;
             try
             {
@@ -139,10 +156,11 @@ namespace Login.ViewModel
                     Imapserv!, ushort.Parse(Imapport!), Imapsec
                     );
 
-                await UserCredentials.TryAuth(User!, string.Empty, false);
+                await UserCredentials.TryAuth(User!, new(), false);
 
                 AddingServer = false;
                 AddServerCmd.NotifyCanExecuteChanged();
+                GoToSelectionCmd.NotifyCanExecuteChanged();
 
                 AllInvisible();
                 UsernameInputGridVisibility = Visible;
@@ -156,6 +174,7 @@ namespace Login.ViewModel
                 Error1Visibility = Visible;
                 AddingServer = false;
                 AddServerCmd.NotifyCanExecuteChanged();
+                GoToSelectionCmd.NotifyCanExecuteChanged();
             }
         }
         private bool CanExecuteAddServerCmd()
@@ -176,6 +195,7 @@ namespace Login.ViewModel
 
             User = new();
         }
+        private bool CanExecuteGoToSelectionCmd() => AddingServer != true;
 
         private void ExecuteSelectEmailCmd()
         {
@@ -236,14 +256,15 @@ namespace Login.ViewModel
             Error1Visibility = Error2Visibility = Collapsed;
             PasswordChecking = true;
             CheckPwdCmd.NotifyCanExecuteChanged();
+            GoBackFromPwdCmd.NotifyCanExecuteChanged();
 
             try
             {
-                await UserCredentials.TryAuth(User!, Pwd ?? string.Empty);
+                await UserCredentials.TryAuth(User!, Pwd);
 
                 ImapWindow imapwnd = new();
                 var vm = (ImapWindowViewModel)imapwnd.DataContext;
-                await vm.Auth(User!, Pwd ?? string.Empty);
+                await vm.Auth(User!, Pwd);
 
                 if (!Users.Contains(User!))
                 await Users.AddAsync(User!);
@@ -262,8 +283,10 @@ namespace Login.ViewModel
 
             PasswordChecking = false;
             CheckPwdCmd.NotifyCanExecuteChanged();
+            GoBackFromPwdCmd.NotifyCanExecuteChanged();
         }
-        private bool CanExecuteCheckPwdCmd(Window? wnd) => !string.IsNullOrWhiteSpace(Pwd) && PasswordChecking != true;
+        private bool CanExecuteCheckPwdCmd(Window? wnd) 
+            => Pwd.Length > 0 && PasswordChecking != true;
 
         private void ExecuteServerSelectCmd(ServerCredentials? obj)
         {

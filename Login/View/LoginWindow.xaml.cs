@@ -1,4 +1,6 @@
-﻿using System.Windows;
+﻿using Login.ViewModel;
+using System.Windows;
+using System.Windows.Controls;
 
 namespace Login.View
 {
@@ -10,6 +12,12 @@ namespace Login.View
         public LoginWindow()
         {
             InitializeComponent();
+        }
+
+        private void PasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
+        {
+            if (this.DataContext is not LoginWindowViewModel vm) return;
+            vm.Pwd = ((PasswordBox)sender).SecurePassword;
         }
     }
 }

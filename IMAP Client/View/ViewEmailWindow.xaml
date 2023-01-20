@@ -4,22 +4,19 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:IMAP_Client"
+        xmlns:VM="clr-namespace:IMAP_Client.ViewModel"
+        xmlns:b="clr-namespace:IMAP_Client.View"
         mc:Ignorable="d"
-        Title="ViewEmailWindow" MinHeight="450" MinWidth="800">
-    <!--<Window.DataContext>
-        
-    </Window.DataContext>-->
+        Title="{Binding Title}" MinHeight="450" MinWidth="800">
+    <Window.DataContext>
+        <VM:ViewEmailWindowViewModel/>
+    </Window.DataContext>
     <Window.Resources>
         <Style TargetType="Label">
             <Setter Property="FontSize" Value="15" />
         </Style>
     </Window.Resources>
     <Grid>
-        <!-- 
-            TODO:
-            Rework bindings
-            Add binding for title
-        -->
         <Grid Margin="20, 10">
             <Grid.RowDefinitions>
                 <RowDefinition Height="auto"/>
@@ -36,33 +33,44 @@
 
             <Label Grid.Row="0" Grid.Column="0" Content="From:"/>
             <Label Name="FromLabel" Grid.Row="0" Grid.Column="1" 
-               Content="{Binding Message.From, RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}"/>
+               Content="{Binding Message.From}"/>
 
             <Label Grid.Row="1" Grid.Column="0" Content="To:"/>
             <Label Name="ToLabel" Grid.Row="1" Grid.Column="1"
-               Content="{Binding Message.To, RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}"/>
+               Content="{Binding Message.To}"/>
 
             <Label Grid.Row="2" Grid.Column="0" Content="Subject:"/>
             <Label Name="SubjectLabel" Grid.Row="2" Grid.Column="1"
-               Content="{Binding Message.Subject, RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}"/>
+               Content="{Binding Message.Subject}"/>
 
             <Label Grid.Row="3" Grid.Column="0" Content="Date:"/>
             <Label Name="DateLabel" Grid.Row="3" Grid.Column="1"
-               Content="{Binding Message.Date, RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}"/>
+               Content="{Binding Message.Date, StringFormat=f}"/>
 
-            <StackPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="-10, 10">
-                <!-- Controls : add some more -->
-                <Button Name="RespondBtn" Content="Respond"/>
-                <!--Command=""-->
+            <StackPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" Margin="-10, 10"
+                        FlowDirection="RightToLeft" Orientation="Horizontal">
+                <Button Margin="20, 0" Content="Respond" Command="{Binding RespondCmd}" b:CloseOnClickBehaviour.IsEnabled="True"/>
+                <Button Margin="20, 0" Content="Delete" Command="{Binding DeleteCmd}" b:CloseOnClickBehaviour.IsEnabled="True"/>
             </StackPanel>
 
             <TabControl Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2">
-                <TabItem Header="Content">
-                    <WebBrowser Name="HtmlBodyPresenter" VerticalAlignment="Center"/>
-                </TabItem>
-                <TabItem Header="Attachments" Name="AttachmentsTabItem">
-                    <ListBox Name="AttachmentsListBox"/>
-                    <!--Command=""-->
+                <TabItem Header="Content" Content="{Binding Browser}"/>
+                <TabItem Header="Attachments">
+                    <ListBox ItemsSource="{Binding Attachments}">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid>
+                                    <Grid.InputBindings>
+                                        <MouseBinding Gesture="LeftDoubleClick"
+                                          Command="{Binding DataContext.OpenFileCmd, RelativeSource={RelativeSource AncestorType=Window}}"
+                                          CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=ListBox}, Path=SelectedItem}"/>
+                                    </Grid.InputBindings>
+
+                                    <Label Content="{Binding}" FontSize="15"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
                 </TabItem>
             </TabControl>
         </Grid>

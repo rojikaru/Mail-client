@@ -4,18 +4,15 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:IMAP_Client"
+        xmlns:model="clr-namespace:IMAP_Client.Model"
         xmlns:VM="clr-namespace:IMAP_Client.ViewModel"
+        xmlns:dd="urn:gong-wpf-dragdrop"
         mc:Ignorable="d"
-        Title="Email client" Height="450" Width="800">
+        Title="Email client" MinHeight="450" MinWidth="800">
     <Window.DataContext>
         <VM:ImapWindowViewModel/>
     </Window.DataContext>
     <Grid>
-        <!-- 
-            TODO:
-            Drag & drop (https://github.com/punker76/gong-wpf-dragdrop)
-            Functionality
-        -->
         <Grid Margin="10">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="auto"/>
@@ -34,33 +31,43 @@
             <ComboBox HorizontalAlignment="Center" MinWidth="150" Name="QueriesComboBox" Grid.Row="0" Grid.Column="3"
                       ItemsSource="{Binding StrQueries}" SelectedItem="{Binding SelectedQuery}"/>
 
-            <ListView Grid.Column="0" Grid.Row="1" Name="FoldersBox" DisplayMemberPath=""
-                      ItemsSource="{Binding Folders}" SelectedItem="{Binding SelectedStrFolder}"/>
+            <ListView Grid.Column="0" Grid.Row="1" Name="FoldersBox" ItemsSource="{Binding Folders}" dd:DragDrop.DropHandler="{Binding}"
+                      dd:DragDrop.IsDragSource="False" dd:DragDrop.IsDropTarget="True" SelectedItem="{Binding SelectedStrFolder}"/>
             <ListBox Grid.Column="1" Grid.Row="1" Grid.ColumnSpan="3" Name="EmailBox"
-                     ItemsSource="{Binding Messages}">
+                     dd:DragDrop.IsDragSource="True" dd:DragDrop.IsDropTarget="False"
+                     ItemsSource="{Binding Messages}" SelectedItem="{Binding SelectedMessage}">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <Grid>
+                            <Grid.Resources>
+                                <model:BindingProxy x:Key="proxy" Data="{Binding DataContext, RelativeSource={RelativeSource AncestorType=Window} }" />
+                            </Grid.Resources>
+                            <Grid.InputBindings>
+                                <MouseBinding Gesture="LeftDoubleClick" 
+                                    Command="{Binding Data.OpenLetterCmd, Source={StaticResource proxy}}"
+                                    CommandParameter="{Binding ElementName=EmailBox, Path=SelectedItem}"/>
+                            </Grid.InputBindings>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="0.5*"/>
                                 <ColumnDefinition Width="0.5*"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
+                            <Grid.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="Delete" CommandParameter="{Binding}"
+                                              Command="{Binding Data.DeleteCmd, Source={StaticResource proxy}}"/>
+                                    <MenuItem Header="Respond" CommandParameter="{Binding}"
+                                              Command="{Binding Data.RespondCmd, Source={StaticResource proxy}}"/>
+                                </ContextMenu>
+                            </Grid.ContextMenu>
 
                             <TextBlock Style="{StaticResource EmailTemplateTextBlock}" Grid.Column="0" FontWeight="Bold" Text="{Binding From}"/>
                             <TextBlock Style="{StaticResource EmailTemplateTextBlock}" Grid.Column="1" FontWeight="Bold" Text="{Binding Date, StringFormat=d}"/>
                             <TextBlock Style="{StaticResource EmailTemplateTextBlock}" Grid.Column="2" FontWeight="Bold" Text="{Binding Subject}"/>
-
-                            <Grid.ContextMenu>
-                                <ContextMenu>
-                                    <MenuItem Header="d"/>
-                                </ContextMenu>
-                            </Grid.ContextMenu>
                         </Grid>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>
-            <!-- Command on double click -->
             <Button Grid.Row="2" Grid.Column="4" Name="WriteButton" Content="Write..."
                     HorizontalAlignment="Right" Margin="20,8,20,0" Command="{Binding WriteCmd}"/>
         </Grid>
