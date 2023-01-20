@@ -1,5 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using GongSolutions.Wpf.DragDrop;
 using HelperLibrary.DAL;
 using IMAP_Client.View;
 using MailKit;
@@ -21,7 +22,7 @@ using System.Windows.Threading;
 
 namespace IMAP_Client.ViewModel
 {
-    public partial class ImapWindowViewModel : ObservableObject
+    public partial class ImapWindowViewModel : ObservableObject, IDropTarget
     {
         private static IDictionary<string, SearchQuery> m_Queries { get; }
         public static IEnumerable<string> StrQueries => m_Queries.Keys;
@@ -79,7 +80,7 @@ namespace IMAP_Client.ViewModel
                     await Task.Delay(1000);
                     SelectedFolder?.Close();
                     m_SelectedFolder = value;
-                    SelectedFolder = MailFolders.Where(x => x.Name == value).FirstOrDefault();
+                    SelectedFolder = GetFolderByName(value);
                     SelectedFolder?.Open(FolderAccess.ReadWrite);
                     ExecuteSearch(SearchQuery.All);
                 });
@@ -138,6 +139,20 @@ namespace IMAP_Client.ViewModel
             GC.Collect();
         }
 
+        private IMailFolder? GetFolderByName(string name)
+            => MailFolders.Where(x => x.Name == name).FirstOrDefault();
+        private async Task<UniqueId> IdForMimeMessageAsync(MimeMessage msg)
+        {
+            Cancel?.Cancel();
+            await Task.Delay(1000);
+            lock (Client.SyncRoot)
+            {
+                var ids = SelectedFolder!.Search(m_Queries[SelectedQuery]);
+                int pos = Messages.IndexOf(msg) + 1;
+                return ids[^pos];
+            }
+        }
+
         private async void ExecuteRespondCmd(MimeMessage? obj)
         {
             if (obj == null) return;
@@ -189,16 +204,11 @@ namespace IMAP_Client.ViewModel
             await SelectedFolder.ExpungeAsync();
         }
 
-        private async Task<UniqueId> IdForMimeMessageAsync(MimeMessage msg)
+        private async Task<UniqueId?> MoveMsg(MimeMessage msg, IMailFolder targetfolder)
         {
-            Cancel?.Cancel();
-            await Task.Delay(1000);
-            lock (Client.SyncRoot)
-            {
-                var ids = SelectedFolder!.Search(m_Queries[SelectedQuery]);
-                int pos = Messages.IndexOf(msg) + 1;
-                return ids[^pos];
-            }
+            UniqueId mid = await IdForMimeMessageAsync(msg);
+            UniqueId? result = await SelectedFolder!.MoveToAsync(mid, targetfolder);
+            return result;
         }
 
         private async Task InnerWrite(MimeMessage? message = null)
@@ -309,6 +319,28 @@ namespace IMAP_Client.ViewModel
 
             if (CancelToken.IsCancellationRequested)
                 Cancel = new();
+        }
+
+        void IDropTarget.DragOver(IDropInfo dropInfo)
+        {
+
+            if (dropInfo.Data is MimeMessage && dropInfo.TargetItem is string /* foldername */)
+            {
+                dropInfo.DropTargetAdorner = DropTargetAdorners.Highlight;
+                dropInfo.Effects = DragDropEffects.Move;
+            }
+        }
+
+        void IDropTarget.Drop(IDropInfo dropInfo)
+        {
+            if (dropInfo.Data is MimeMessage msg && dropInfo.TargetItem is string foldername)
+            {
+                IMailFolder? folder = GetFolderByName(foldername);
+
+                if (folder == null) return;
+                else MoveMsg(msg, folder)
+                        .ContinueWith(t => CurrentDispatcher.Invoke(() => Messages.Remove(msg)));
+            }
         }
 
         ~ImapWindowViewModel()

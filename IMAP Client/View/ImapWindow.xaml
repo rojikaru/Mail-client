@@ -6,17 +6,13 @@
         xmlns:local="clr-namespace:IMAP_Client"
         xmlns:model="clr-namespace:IMAP_Client.Model"
         xmlns:VM="clr-namespace:IMAP_Client.ViewModel"
+        xmlns:dd="urn:gong-wpf-dragdrop"
         mc:Ignorable="d"
         Title="Email client" MinHeight="450" MinWidth="800">
     <Window.DataContext>
         <VM:ImapWindowViewModel/>
     </Window.DataContext>
     <Grid>
-        <!-- 
-            TODO:
-            Drag & drop (https://github.com/punker76/gong-wpf-dragdrop)
-            Functionality
-        -->
         <Grid Margin="10">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="auto"/>
@@ -35,9 +31,10 @@
             <ComboBox HorizontalAlignment="Center" MinWidth="150" Name="QueriesComboBox" Grid.Row="0" Grid.Column="3"
                       ItemsSource="{Binding StrQueries}" SelectedItem="{Binding SelectedQuery}"/>
 
-            <ListView Grid.Column="0" Grid.Row="1" Name="FoldersBox" DisplayMemberPath=""
-                      ItemsSource="{Binding Folders}" SelectedItem="{Binding SelectedStrFolder}"/>
+            <ListView Grid.Column="0" Grid.Row="1" Name="FoldersBox" ItemsSource="{Binding Folders}" dd:DragDrop.DropHandler="{Binding}"
+                      dd:DragDrop.IsDragSource="False" dd:DragDrop.IsDropTarget="True" SelectedItem="{Binding SelectedStrFolder}"/>
             <ListBox Grid.Column="1" Grid.Row="1" Grid.ColumnSpan="3" Name="EmailBox"
+                     dd:DragDrop.IsDragSource="True" dd:DragDrop.IsDropTarget="False"
                      ItemsSource="{Binding Messages}" SelectedItem="{Binding SelectedMessage}">
                 <ListBox.ItemTemplate>
                     <DataTemplate>

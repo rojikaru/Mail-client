@@ -3,7 +3,9 @@ using System.IO;
 
 namespace IMAP_Client.Model
 {
+#pragma warning disable CS0660, CS0661
     public class TaggedFile : IEquatable<TaggedFile>
+#pragma warning restore CS0660, CS0661
     {
         public FileInfo Info { get; }
         public string Name => Info.Name;
