@@ -1,17 +1,14 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using HelperLibrary;
 using IMAP_Client.Model;
 using Microsoft.Web.WebView2.Wpf;
 using MimeKit;
-using MimeKit.Text;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Net.Mail;
 using System.Windows;
 using System.Windows.Threading;
 
@@ -19,17 +16,32 @@ namespace IMAP_Client.ViewModel
 {
     public partial class ViewEmailWindowViewModel : ObservableObject
     {
+        public enum ViewEmailResult
+        {
+            None, Delete, Respond
+        }
+
+        public ViewEmailResult Result { get; private set; }
+
         public ObservableCollection<TaggedFile> Attachments { get; }
         public WebView2 Browser { get; }
+
         private Dispatcher CurrentDispatcher { get; }
 
         [ObservableProperty] private MimeMessage? m_message;
         [ObservableProperty] private string title;
 
         public IRelayCommand OpenFileCmd { get; }
+        public IRelayCommand DeleteCmd { get; }
+        public IRelayCommand RespondCmd { get; }
 
         public ViewEmailWindowViewModel()
         {
+            DeleteCmd = new RelayCommand(ExecuteDeleteCmd);
+            RespondCmd = new RelayCommand(ExecuteRespondCmd);
+
+            Result = ViewEmailResult.None;
+
             OpenFileCmd = new RelayCommand<TaggedFile>(ExecuteOpenFileCmd);
 
             Browser = new();
@@ -38,6 +50,11 @@ namespace IMAP_Client.ViewModel
 
             title = string.Empty;
         }
+
+        private void ExecuteDeleteCmd()
+            => Result = ViewEmailResult.Delete;
+        private void ExecuteRespondCmd()
+            => Result = ViewEmailResult.Respond;
 
         private static readonly string DownloadsFolder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + @"\Downloads\";
         private void ExecuteOpenFileCmd(TaggedFile? obj)
@@ -58,24 +75,23 @@ namespace IMAP_Client.ViewModel
                 {
                     source.CopyTo(GetAvailablePath(DownloadsFolder, ShortNameWithNoExtension(source), source.Extension));
 
-                    string GetAvailablePath(string PromptedFolder, string filename, string Extension)
+                    static string GetAvailablePath(string PromptedFolder, string filename, string Extension)
                     {
                         string freepath = PromptedFolder + filename + Extension;
                         for (int i = 0; ; i++)
                         {
                             if (!File.Exists(freepath)) break;
-                            freepath = $"{PromptedFolder}{source.Name[..source.Name.LastIndexOf('.')]} - copy ({i}){source.Extension}";
+                            freepath = $"{PromptedFolder}{filename} - copy ({i}){Extension}";
                         }
                         return freepath;
                     }
-                    string ShortNameWithNoExtension(FileInfo file)
+                    static string ShortNameWithNoExtension(FileInfo file)
                         => file.Name[..file.Name.LastIndexOf('.')];
                 }
             }
         }
 
         private const string tempfolder = "Temp/";
-
         private static List<TaggedFile> GetAttachments(MimeMessage Message)
         {
             List<TaggedFile> att = new();
@@ -88,15 +104,21 @@ namespace IMAP_Client.ViewModel
                     Directory.CreateDirectory(tempfolder);
 
                     using var stream = File.Create(tempfolder + fileName);
-                    if (attachment is MessagePart rfc822)
-                        rfc822.Message.WriteTo(stream);
-                    else
-                    {
-                        MimePart part = (MimePart)attachment;
-                        part.Content.DecodeTo(stream);
-                    }
-
+                    MimeEntityToStream(stream, attachment);
                     att.Add(new TaggedFile(stream.Name));
+
+                    static void MimeEntityToStream(FileStream fs, MimeEntity? entity)
+                    {
+                        if (entity == null)
+                            throw new ArgumentNullException(nameof(entity));
+                        else if (entity is MessagePart rfc822)
+                            rfc822.Message.WriteTo(fs);
+                        else
+                        {
+                            MimePart part = (MimePart)entity;
+                            part.Content.DecodeTo(fs);
+                        }
+                    }
                 }
             }
             else
@@ -107,27 +129,22 @@ namespace IMAP_Client.ViewModel
             return att;
         }
 
-        public async void Load(MimeMessage msg)
+        public async void Load(MimeMessage Message)
         {
-            Message = msg;
-            Title = $"{msg.Subject} - Email viewer";
+            this.Message = Message;
+            Title = $"{Message.Subject} - Email viewer";
 
-            string html = msg.HtmlBody ?? string.Empty;
+            string html = Message.HtmlBody ?? string.Empty;
 
             await Browser.EnsureCoreWebView2Async();
-            if (msg.HtmlBody != null)
+            if (Message.HtmlBody != null)
             await CurrentDispatcher.InvokeAsync(() => 
             {
                 Browser.NavigateToString(html);
             });
 
-            foreach(var attachment in GetAttachments(Message))
+            foreach(var attachment in GetAttachments(this.Message))
                 Attachments.Add(attachment);
-        }
-
-        ~ViewEmailWindowViewModel()
-        {
-            Directory.Delete(tempfolder, true);
         }
     }
 }

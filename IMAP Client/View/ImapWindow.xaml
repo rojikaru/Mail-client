@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:IMAP_Client"
+        xmlns:model="clr-namespace:IMAP_Client.Model"
         xmlns:VM="clr-namespace:IMAP_Client.ViewModel"
         mc:Ignorable="d"
         Title="Email client" MinHeight="450" MinWidth="800">
@@ -41,9 +42,12 @@
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <Grid>
+                            <Grid.Resources>
+                                <model:BindingProxy x:Key="proxy" Data="{Binding DataContext, RelativeSource={RelativeSource AncestorType=Window} }" />
+                            </Grid.Resources>
                             <Grid.InputBindings>
                                 <MouseBinding Gesture="LeftDoubleClick" 
-                                    Command="{Binding DataContext.OpenLetterCmd, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    Command="{Binding Data.OpenLetterCmd, Source={StaticResource proxy}}"
                                     CommandParameter="{Binding ElementName=EmailBox, Path=SelectedItem}"/>
                             </Grid.InputBindings>
                             <Grid.ColumnDefinitions>
@@ -51,21 +55,22 @@
                                 <ColumnDefinition Width="0.5*"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
+                            <Grid.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="Delete" CommandParameter="{Binding}"
+                                              Command="{Binding Data.DeleteCmd, Source={StaticResource proxy}}"/>
+                                    <MenuItem Header="Respond" CommandParameter="{Binding}"
+                                              Command="{Binding Data.RespondCmd, Source={StaticResource proxy}}"/>
+                                </ContextMenu>
+                            </Grid.ContextMenu>
 
                             <TextBlock Style="{StaticResource EmailTemplateTextBlock}" Grid.Column="0" FontWeight="Bold" Text="{Binding From}"/>
                             <TextBlock Style="{StaticResource EmailTemplateTextBlock}" Grid.Column="1" FontWeight="Bold" Text="{Binding Date, StringFormat=d}"/>
                             <TextBlock Style="{StaticResource EmailTemplateTextBlock}" Grid.Column="2" FontWeight="Bold" Text="{Binding Subject}"/>
-
-                            <Grid.ContextMenu>
-                                <ContextMenu>
-                                    <MenuItem Header="d"/>
-                                </ContextMenu>
-                            </Grid.ContextMenu>
                         </Grid>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>
-            <!-- Command on double click -->
             <Button Grid.Row="2" Grid.Column="4" Name="WriteButton" Content="Write..."
                     HorizontalAlignment="Right" Margin="20,8,20,0" Command="{Binding WriteCmd}"/>
         </Grid>

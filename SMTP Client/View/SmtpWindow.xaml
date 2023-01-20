@@ -32,9 +32,33 @@
             </Grid.ColumnDefinitions>
 
             <Label Grid.Row="0" Grid.Column="0" Content="To: "/>
-            <TextBox Grid.Row="0" Grid.Column="1" Name="ToTextBox" Text="{Binding To}"/>
+            <TextBox Grid.Row="0" Grid.Column="1" Name="ToTextBox" Text="{Binding To, UpdateSourceTrigger=PropertyChanged}"/>
 
-            
+            <StackPanel VerticalAlignment="Center" Grid.Row="1" Grid.Column="1" Orientation="Horizontal">
+                <ListBox Name="ToListBox" ItemsSource="{Binding ToList}" BorderThickness="0">
+                    <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Orientation="Horizontal"/>
+                        </ItemsPanelTemplate>
+                    </ListBox.ItemsPanel>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="auto"/>
+                                    <ColumnDefinition Width="auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <Label FontSize="14" Content="{Binding}" Grid.Column="0"/>
+                                <Button Grid.Column="1" Content="X" 
+                                        Command="{Binding DataContext.RemoveToCmd, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"/>
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+                <Button Name="AddToBtn" Content="Add..." HorizontalAlignment="Left"
+                        Command="{Binding AddToCmd}"/>
+            </StackPanel>
             
             <Label Grid.Row="2" Grid.Column="0" Content="Subject: "/>
             <TextBox Grid.Row="2" Grid.Column="1" Name="SubjectTextBox" Text="{Binding Subject}"/>
@@ -50,11 +74,11 @@
             <Label Grid.Row="5" Grid.Column="0" Content="Attachments: "/>
             <StackPanel VerticalAlignment="Center" Grid.Row="5" Grid.Column="1" Orientation="Horizontal">
                 <ListBox Name="AttachmentsListBox" ItemsSource="{Binding AttachmentsList}" BorderThickness="0">
-                    <!--<ListBox.ItemsPanel>
+                    <ListBox.ItemsPanel>
                         <ItemsPanelTemplate>
                             <WrapPanel Orientation="Horizontal"/>
                         </ItemsPanelTemplate>
-                    </ListBox.ItemsPanel>-->
+                    </ListBox.ItemsPanel>
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <Grid>
@@ -63,16 +87,15 @@
                                     <ColumnDefinition Width="auto"/>
                                 </Grid.ColumnDefinitions>
 
-                                <!--Image-->
                                 <Label FontSize="14" Content="{Binding Path=., Converter={StaticResource FileNameValueConverter}}" Grid.Column="0"/>
                                 <Button Grid.Column="1" Content="X" 
-                                        Command="{Binding DataContext.RemoveCmd, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"/>
+                                        Command="{Binding DataContext.RemoveAttachmentCmd, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"/>
                             </Grid>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>
                 <Button Name="AddAttachmentBtn" Content="Add..." HorizontalAlignment="Left"
-                        Command="{Binding AddCmd}"/>
+                        Command="{Binding AddAttachmentCmd}"/>
             </StackPanel>
 
             <Button Name="SendBtn" Content="Send" Grid.Row="7" Grid.Column="1" Margin="25, 5"

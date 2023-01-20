@@ -1,7 +1,7 @@
 ﻿using System.Windows.Controls;
 using System.Windows;
 
-namespace SMTP_Client.View
+namespace IMAP_Client.View
 {
     public static class CloseOnClickBehaviour
     {
@@ -26,7 +26,9 @@ namespace SMTP_Client.View
 
         static void OnIsEnabledPropertyChanged(DependencyObject dpo, DependencyPropertyChangedEventArgs args)
         {
-            if (dpo is not Button button) return;
+            var button = dpo as Button;
+            if (button == null)
+                return;
 
             var oldValue = (bool)args.OldValue;
             var newValue = (bool)args.NewValue;
@@ -43,7 +45,9 @@ namespace SMTP_Client.View
 
         static void OnClick(object sender, RoutedEventArgs e)
         {
-            if (sender is not Button button) return;
+            var button = sender as Button;
+            if (button == null)
+                return;
 
             var win = Window.GetWindow(button);
             if (win == null)

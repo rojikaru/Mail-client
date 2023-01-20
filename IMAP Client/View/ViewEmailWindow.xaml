@@ -5,6 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:IMAP_Client"
         xmlns:VM="clr-namespace:IMAP_Client.ViewModel"
+        xmlns:b="clr-namespace:IMAP_Client.View"
         mc:Ignorable="d"
         Title="{Binding Title}" MinHeight="450" MinWidth="800">
     <Window.DataContext>
@@ -16,11 +17,6 @@
         </Style>
     </Window.Resources>
     <Grid>
-        <!-- 
-            TODO:
-            Rework bindings
-            Add binding for title
-        -->
         <Grid Margin="20, 10">
             <Grid.RowDefinitions>
                 <RowDefinition Height="auto"/>
@@ -51,10 +47,10 @@
             <Label Name="DateLabel" Grid.Row="3" Grid.Column="1"
                Content="{Binding Message.Date, StringFormat=f}"/>
 
-            <StackPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="-10, 10">
-                <!-- Controls : add some more -->
-                <Button Name="RespondBtn" Content="Respond"/>
-                <!--Command=""-->
+            <StackPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" Margin="-10, 10"
+                        FlowDirection="RightToLeft" Orientation="Horizontal">
+                <Button Margin="20, 0" Content="Respond" Command="{Binding RespondCmd}" b:CloseOnClickBehaviour.IsEnabled="True"/>
+                <Button Margin="20, 0" Content="Delete" Command="{Binding DeleteCmd}" b:CloseOnClickBehaviour.IsEnabled="True"/>
             </StackPanel>
 
             <TabControl Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2">

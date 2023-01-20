@@ -9,6 +9,11 @@
             <Setter Property="Padding" Value="10, 4" />
             <Setter Property="FontSize" Value="16" />
         </Style>
+        <Style TargetType="PasswordBox">
+            <Setter Property="Margin" Value="5" />
+            <Setter Property="Padding" Value="10, 4" />
+            <Setter Property="FontSize" Value="16" />
+        </Style>
         <Style TargetType="TextBlock" x:Key="EmailTemplateTextBlock">
             <Setter Property="Margin" Value="5" />
             <Setter Property="FontSize" Value="14" />

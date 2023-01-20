@@ -1,5 +1,4 @@
-﻿using CommunityToolkit.Mvvm.Collections;
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HelperLibrary.DAL;
 using IMAP_Client.View;
@@ -7,7 +6,6 @@ using MailKit;
 using MailKit.Net.Imap;
 using MailKit.Search;
 using MimeKit;
-using Org.BouncyCastle.Asn1.X509;
 using SMTP_Client.View;
 using SMTP_Client.ViewModel;
 using System;
@@ -15,6 +13,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Net;
+using System.Security;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -33,9 +32,11 @@ namespace IMAP_Client.ViewModel
         public IRelayCommand SearchCmd { get; }
         public IRelayCommand WriteCmd { get; }
         public IRelayCommand OpenLetterCmd { get; }
+        public IRelayCommand DeleteCmd { get; }
+        public IRelayCommand RespondCmd { get; }
 
         private IImapClient Client { get; }
-        private string? pwd;
+        private SecureString? pwd;
         public MimeMessage? SelectedMessage { get; set; }
 
         [ObservableProperty, NotifyCanExecuteChangedFor(nameof(SearchCmd))]
@@ -126,16 +127,30 @@ namespace IMAP_Client.ViewModel
             SearchCmd = new RelayCommand(ExecuteSearchCmd, CanExecuteSearchCmd);
             WriteCmd = new AsyncRelayCommand(ExecuteWriteCmd);
             OpenLetterCmd = new RelayCommand<MimeMessage>(ExecuteOpenLetterCmd);
+            DeleteCmd = new RelayCommand<MimeMessage>(ExecuteDeleteCmd);
+            RespondCmd = new RelayCommand<MimeMessage>(ExecuteRespondCmd);
 
             m_SearchKey = string.Empty;
             SelectedQuery = "All";
 
             CurrentDispatcher = Dispatcher.CurrentDispatcher;
 
-            GC.Collect(GC.MaxGeneration);
+            GC.Collect();
         }
 
-        private void ExecuteOpenLetterCmd(MimeMessage? obj)
+        private async void ExecuteRespondCmd(MimeMessage? obj)
+        {
+            if (obj == null) return;
+            await InnerWrite(obj);
+        }
+
+        private async void ExecuteDeleteCmd(MimeMessage? obj)
+        {
+            if (obj == null) return;
+            await DeleteMsg(obj);
+        }
+
+        private async void ExecuteOpenLetterCmd(MimeMessage? obj)
         {
             if (obj == null) return;
 
@@ -145,32 +160,80 @@ namespace IMAP_Client.ViewModel
             wnd.ShowDialog();
 
             SelectedMessage = null;
+
+            switch (VM.Result)
+            {
+                case ViewEmailWindowViewModel.ViewEmailResult.Delete:
+                    await DeleteMsg(obj);
+                    break;
+                case ViewEmailWindowViewModel.ViewEmailResult.Respond:
+                    await InnerWrite(obj);
+                    break;
+                default:
+                    break;
+            }
         }
 
-        private async Task ExecuteWriteCmd()
+        private async Task DeleteMsg(MimeMessage msg)
         {
-            SmtpWindow wnd = new();
-            var VM = (SmtpWindowViewModel)wnd.DataContext;
-            await VM.Auth(creds!, pwd!);
-            wnd.ShowDialog();
+            UniqueId mid = await IdForMimeMessageAsync(msg);
+
+            var trashfolder = Client.GetFolder(SpecialFolder.Trash);
+
+            if (trashfolder == SelectedFolder)
+                await SelectedFolder.SetFlagsAsync(mid, MessageFlags.Deleted, true);
+            else 
+                await SelectedFolder!.MoveToAsync(mid, trashfolder);
+
+            await CurrentDispatcher.InvokeAsync(() => Messages.Remove(msg));
+            await SelectedFolder.ExpungeAsync();
         }
 
-        private async void ExecuteSearchCmd()
+        private async Task<UniqueId> IdForMimeMessageAsync(MimeMessage msg)
         {
             Cancel?.Cancel();
             await Task.Delay(1000);
-            await CurrentDispatcher.InvokeAsync(Messages.Clear);
-            ExecuteSearch(SearchKey);
+            lock (Client.SyncRoot)
+            {
+                var ids = SelectedFolder!.Search(m_Queries[SelectedQuery]);
+                int pos = Messages.IndexOf(msg) + 1;
+                return ids[^pos];
+            }
+        }
+
+        private async Task InnerWrite(MimeMessage? message = null)
+        {
+            SmtpWindow wnd = new();
+
+            var VM = (SmtpWindowViewModel)wnd.DataContext;
+            await VM.Auth(creds!, pwd!, message);
+
+            wnd.ShowDialog();
+        }
+
+        private async Task ExecuteWriteCmd()
+            => await InnerWrite();
+
+        private void ExecuteSearchCmd()
+        {
+            Cancel?.Cancel();
+            Messages.Clear();
+            Task.Run(async () =>
+            {
+                await Task.Delay(1000);
+                ExecuteSearch(SearchKey);
+            });
         }
         private bool CanExecuteSearchCmd()
             => !string.IsNullOrWhiteSpace(SearchKey);
 
-        public async Task Auth(UserCredentials credentials, string pwd)
+        public async Task Auth(UserCredentials credentials, SecureString pwd)
         {
             creds = credentials;
             ServerData? ImapData = credentials.Servers.ImapServer;
 
-            if (ImapData is null) throw new ArgumentException("Servers.ImapServer property may not be null to auth", nameof(credentials));
+            if (ImapData is null) 
+                throw new ArgumentException("Servers.ImapServer property may not be null to auth", nameof(credentials));
 
             await Client.ConnectAsync(ImapData.Host, ImapData.Port, ImapData.SecurityOptions);
             await Client.AuthenticateAsync(new NetworkCredential(credentials.UserName, pwd));
