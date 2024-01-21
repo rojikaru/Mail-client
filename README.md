@@ -3,7 +3,8 @@
 A simple email email client written in C#.  
 
 ### Used technologies:  
-- .NET  
+- .NET
+- WPF  
 - Mailkit  
 - Mvvm (CommunityToolkit)  
 - Gong Drag-n-drop  
